@@ -2,7 +2,7 @@ from pathlib import Path
 from typing import Optional, Dict, Any
 import torch, whisper
 
-def load_whisper(model_size: str = "medium") -> whisper.Whisper:
+def load_whisper(model_size: str = "small") -> whisper.Whisper:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model = whisper.load_model(model_size, device=device)
     return model

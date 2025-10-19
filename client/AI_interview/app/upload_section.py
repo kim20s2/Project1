@@ -7,7 +7,7 @@ from core.analysis_audio import analyze_stability, get_stability_score
 
 
 # ── 업로드 모드(배치 분석) ────────────────────────────────────────────
-def render_upload_section(*, SAVE_DIR: Path, ss, whisper_model, feedback_chain):
+def render_upload_section(*, ss, whisper_model, feedback_chain):
     with st.expander("📤 업로드 모드", expanded=False):
         # 세션별 기록 보관
         ss.setdefault("chapters", [])

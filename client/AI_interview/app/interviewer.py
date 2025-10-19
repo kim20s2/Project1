@@ -1,15 +1,15 @@
 from __future__ import annotations
 import streamlit as st
 import requests, tempfile, base64, shutil,time
-import os, wave,glob
+import os, wave,glob,uuid
 import numpy as np, math
-import time as _t
+import time 
 from pathlib import Path
 from typing import Callable, Iterable, Tuple
 from core.analysis_audio import analyze_stability, get_stability_score
 from core.analysis_pose import parse_posture_summary, normalize_posture
 from adapters.interviewer_adapters import my_stt_from_path as stt_fn, load_persona_videos, shuffle_order
-from core.recording_io import save_assets_after_stop
+from core.recording_io import save_assets_after_stop, BASE_DIR 
 from core.chains import get_prompt,call_llm
 import statistics as stats, json
 
@@ -17,14 +17,30 @@ SHOW_PER_ANSWER_METRICS = False  # 답변별 지표는 숨김
 SHOW_FINAL_METRICS      = True   # 총평에서만 지표 표시
 
 def _find_xml_for_session(session_id: str, prefer_stem: str | None = None) -> str | None:
-    """세션 폴더에서 최신 XML을 찾되, wav 스템이 있으면 우선 매칭."""
-    d = get_save_dir(session_id)
-    if prefer_stem:
-        cands = list(Path(d).glob(f"*{prefer_stem}*.xml"))
-        if cands:
-            return str(max(cands, key=os.path.getmtime))
-    cands = list(Path(d).glob("*.xml"))
-    return str(max(cands, key=os.path.getmtime)) if cands else None
+    """
+    세션 루트와 xml/ 하위 폴더를 모두 검색해서
+    최신 XML을 찾는다. prefer_stem이 있으면 그걸 우선 매칭.
+    (디렉터리를 새로 만들지 않도록 get_save_dir는 사용하지 않음)
+    """
+    session_root = BASE_DIR / session_id
+    search_roots = [session_root, session_root / "xml"]
+
+    cands = []
+    for d in search_roots:
+        if not d.exists():
+            continue
+        if prefer_stem:
+            cands.extend(d.glob(f"*{prefer_stem}*.xml"))
+        else:
+            cands.extend(d.glob("*.xml"))
+
+    if not cands:
+        return None
+
+    # 최신 수정시간 기준
+    newest = max(cands, key=lambda p: p.stat().st_mtime)
+    return str(newest)
+
 # 넘파이 스칼라 유틸 
 def _to_native(x):
     if isinstance(x, np.generic):
@@ -105,12 +121,38 @@ def download_wav_direct(server_url: str, max_wait_s=20, interval_s=0.5, min_byte
 
 
 def resolve_posture_xml_for(wav_path: str) -> str | None:
-    p = Path(wav_path); x = p.with_suffix(".xml")
-    return str(x) if x.exists() else None
+    """
+    우선순위:
+    1) WAV와 같은 폴더의 <stem>.xml (구조 변경 전 호환)
+    2) .../<session>/xml/<stem>.xml (형식별 폴더 분리 후)
+    """
+    p = Path(wav_path)
+
+    # 1) 같은 폴더
+    same = p.with_suffix(".xml")
+    if same.exists():
+        return str(same)
+
+    # 2) 세션 루트/xml/<stem>.xml
+    #    보통 wav 경로: .../<session>/wav/<stem>.wav
+    #    예외로 루트에 저장된 경우도 고려
+    try:
+        if p.parent.name == "wav":
+            session_root = p.parent.parent
+        else:
+            # wav가 세션 루트 바로 아래 있는 구버전 구조
+            session_root = p.parent
+
+        cand = session_root / "xml" / (p.stem + ".xml")
+        if cand.exists():
+            return str(cand)
+    except Exception:
+        pass
+
+    return None
 
 def render_interviewer_panel(
     server_url: str,
-    tts_interviewer: Callable[[str, float], Tuple[bytes, str]],  # ← 지금은 미사용(호환만 유지)
     stt_fn: Callable[[str], str],
     feedback_fn: Callable[[str, str], str],
     questions: Iterable[str] = (
@@ -118,7 +160,6 @@ def render_interviewer_panel(
         "가장 도전적이었던 프로젝트와 역할은?",
         "문제 해결 경험을 STAR 구조로 설명해 주세요.",
     ),
-    tts_speed: float = 0.95,  # ← 미사용
 ) -> None:
     """
     면접관 모드 패널 (MP4 전용 재생으로 수정)
@@ -144,6 +185,24 @@ def render_interviewer_panel(
         ss.setdefault("eva_answer_enabled", False)
         ss.setdefault("eva_current_idx", None)
         ss.setdefault("eva_ends_at", None)
+    def _new_session():
+        ss.session_id = time.strftime("%Y%m%d_%H%M%S") + "_" + uuid.uuid4().hex[:6]
+        ss.eva_history = []
+        ss.eva_voice_summary = {}
+        ss.eva_posture_summary = {}
+        ss.eva_last_wav = None
+        ss.eva_last_xml = None
+        ss.eva_pending_analysis = False
+        ss.eva_pending_final = False
+        ss["_reran_to_final_once"] = False
+        ss.eva_qidx = 0
+
+        # ★ 추가 권장: 이전 세션 흔적 제거
+        ss.eva_recording = False
+        ss.eva_stopped = False
+        ss.eva_auto_saved_once = False
+        ss.eva_last_stt = ""
+        ss.eva_last_fb = ""
 
     # ── 현재 질문 준비(영상 로드 + 랜덤 순서) ─────────────────────────────
     ASSET_DIR = os.path.join(os.path.dirname(__file__), "assets")  # app/assets
@@ -180,8 +239,8 @@ def render_interviewer_panel(
     with c1:
         if st.button("▶ 면접 시작", use_container_width=True,
                     disabled=ss.get("eva_started", False) or ss.get("eva_recording", False)):
-            _start_play(cur_idx, cur)  # 상태 세팅 + st.rerun()
-
+            _new_session()            # ← 여기!
+            _start_play(cur_idx, cur)
     # ── 면접관 영상은 mid에서 렌더
     left, mid, right = st.columns([2.5, 2, 2.5])
     with mid:
@@ -196,7 +255,7 @@ def render_interviewer_panel(
             ss.eva_answer_enabled = True
             ss.eva_ends_at = None
         else:
-            _t.sleep(min(0.5, max(0.1, remain)))
+            time.sleep(min(0.5, max(0.1, remain)))
             st.rerun()
 
         # ── c3: '다음 질문'은 시작 이후엔 항상 보이지만, 조건에 따라 disabled
@@ -207,16 +266,8 @@ def render_interviewer_panel(
                 or not ss.get("eva_answer_enabled", False) # 답변 가능 상태 아니면 비활성
                 or ss.get("eva_recording", False)          # 녹음 중이면 비활성
             )
-
-            # 버튼 크기 줄이기: 더 좁은 column에 꽉 채워 넣기
-            btn_col, _ = st.columns([11, 1])  # ← 1/4 폭
-            with btn_col:
-                clicked = st.button(
-                    "➡ 다음 질문",
-                    key="btn_next",
-                    use_container_width=True,
-                    disabled=next_disabled,
-                )
+            
+            clicked = st.button("➡ 다음 질문", key="btn_next", use_container_width=True, disabled=next_disabled)
 
             if clicked:
                 order = ss.eva_order
@@ -253,8 +304,8 @@ def render_interviewer_panel(
                         ss.eva_auto_saved_once = False
                         ss.eva_last_wav = None
 
-                        st.success("면접이 시작했습니다. " 
-                                   "답변을 말씀해 주세요.")
+                        st.success("""면접이 시작했습니다.
+                                      답변을 말씀해 주세요.""")
                     except requests.exceptions.RequestException as e:
                         st.error(f"요청 실패: {e}")
                     finally:
@@ -290,7 +341,13 @@ def render_interviewer_panel(
     if ss.eva_stopped and not ss.eva_auto_saved_once:
         kinds = ["wav", "xml"] if ss.get("mp4_manual_only") else ["mp4", "wav", "xml"]
         with st.spinner("저장 중…"):
-            saved = save_assets_after_stop(server_url, ss.get("session_id", "sess"), kinds=kinds)
+            saved = save_assets_after_stop(
+            server_url=server_url,
+            session_id=ss.session_id,   # ← get(...) 대신 확실한 세션 ID 사용 권장
+            kinds=tuple(kinds),          # ← iterable이면 리스트도 OK, 습관상 튜플로
+            qidx=ss.eva_qidx,           # ★ 추가: 녹음 당시 질문 인덱스 전달
+            # stem=원하면_외부에서_고정_stem_지정_가능
+        )
         if saved:
             # ★ 저장된 로컬 경로를 세션에 고정해 둔다
             if "wav" in saved: ss.eva_last_wav  = str(saved["wav"])
@@ -364,6 +421,7 @@ def render_interviewer_panel(
 
                     # ✅ 히스토리 저장
                     ss.eva_history.append({
+                        "session_id": ss.session_id,
                         "qidx": ss.eva_qidx,
                         "qtext": qtext,
                         "wav_path": ss.eva_last_wav,
@@ -388,6 +446,7 @@ def render_interviewer_panel(
 
     elif ss.eva_pending_final and not ss.eva_pending_analysis:
         with final_box:
+          with st.spinner("🧾 총평 생성 중…"):
             try:
                 # --- (그대로 유지) 지표 집계 ---
                 def _avg(seq):
@@ -449,9 +508,31 @@ def render_interviewer_panel(
                 st.info(f"(참고: {e})")
 
             finally:
-                ss.eva_pending_final = False
-                ss["_reran_to_final_once"] = False  # (있다면) rerun 가드 해제
+        # --- 세션 아카이브 (이미 넣은 코드) ---
+                ss.setdefault("eva_sessions", []).append({
+                    "session_id": ss.session_id,
+                    "answers": ss.eva_history.copy(),
+                    "summary": summary_text if 'summary_text' in locals() else None,
+                    "voice":   locals().get("voice_dict")   or ss.get("eva_voice_summary")   or {},
+                    "posture": locals().get("posture_dict") or ss.get("eva_posture_summary") or {},
+                    "ended_at": time.time(),
+                })
+                ss.eva_history = []  # 다음 면접을 위해 비움
 
+                # --- ★ 재시작을 막는 상태값들 리셋 ---
+                ss.eva_started = False
+                ss.eva_playing = False
+                ss.eva_answer_enabled = False
+                ss.eva_current_idx = None
+                ss.eva_ends_at = None
+                ss.eva_recording = False
+                ss.eva_stopped = False
+                ss.eva_auto_saved_once = False
+
+                # 플래그 정리
+                ss.eva_pending_final = False
+                ss["_reran_to_final_once"] = False
+        
     # 상태 표시
     st.markdown("🟢 **답변 중입니다...**" if ss.eva_recording else "⚪ **면접 대기 중**")
     st.markdown("---")

@@ -5,6 +5,7 @@ from langchain.chains import LLMChain
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
 
+# 업로드 모드 프롬프트 
 prompt = ChatPromptTemplate.from_messages([
     ("system", "너는 전문 면접관이다. 아래는 면접자의 행동 분석 결과이다. 음성, 자세, 제스처 등의 데이터를 참고하여 면접자의 발성과 태도를 평가하고 피드백을 제공하라."),
     ("human", """
@@ -34,29 +35,13 @@ prompt = ChatPromptTemplate.from_messages([
 
 def build_feedback_chain(*, api_key: str, model: str = "gemini-2.5-flash", temperature: float = 0.6):
     llm = ChatGoogleGenerativeAI(model=model, temperature=temperature, api_key=api_key)
-    return LLMChain(llm=llm, prompt=LIVE_PROMPT)
+    return LLMChain(llm=llm, prompt=prompt)
 @lru_cache(maxsize=1)
 def get_feedback_chain() -> LLMChain:
     key = os.getenv("GOOGLE_API_KEY")
     if not key:
         raise RuntimeError("GOOGLE_API_KEY 미설정")
     return build_feedback_chain(api_key=key)
-
-# 라이브모드 프롬프트
-LIVE_PROMPT = ChatPromptTemplate.from_messages([
-    ("system",
-     "너는 실시간 면접 코치다. 최신 발화와 비언어 신호 요약을 보고, "
-     "한국어로 1~2문장만 간결하게 코칭하거나 꼬리질문을 제시해라. 부드럽고 실용적으로."),
-    ("human",
-     "[이번 발화]\n{latest_utt}\n\n[비언어 요약]\n{nonverbal}\n\n"
-     "요구사항: 1~2문장. 과한 칭찬/사족 금지. 속도/명료성/구조/톤 중 1~2개만 짚기.")
-])
-
-def build_live_feedback_chain(*, api_key: str, model: str = "gemini-2.5-flash", temperature: float = 0.6):
-    llm = ChatGoogleGenerativeAI(model=model, temperature=temperature, api_key=api_key)
-    # LCEL로 바로 문자열 출력
-    return LIVE_PROMPT | llm | StrOutputParser()
-
 
 # --- 총평용 프롬프트 (UI에서 render(...)해 문자열로 넘김) ---
 SESSION_PROMPT = ChatPromptTemplate.from_messages([
@@ -70,7 +55,7 @@ SESSION_PROMPT = ChatPromptTemplate.from_messages([
      "**음성(발성/전달력, 음정/억양/속도/볼륨)**과 **자세(시선/기울임/제스처)**에 대한 코멘트를 각각 최소 1문장씩 반드시 포함.\n"
      "기술지표명(jitter/shimmer/HNR)은 언급하지 말 것.")
 ])
-# --- 라이브 코칭용 프롬프트 (답변별) ---
+# --- 답변별 코칭용 프롬프트  ---
 LIVE_PROMPT = ChatPromptTemplate.from_messages([
     ("system",
      "너는 실시간 면접 코치다. 최신 발화와 비언어 신호 요약을 보고, "
@@ -80,6 +65,7 @@ LIVE_PROMPT = ChatPromptTemplate.from_messages([
      "요구사항: 1~2문장. 과한 칭찬/사족 금지. 속도/명료성/구조/톤 중 1~2개만 짚기.")
 ])
 
+# 총평용, 답변별 프롬프트 선택 함수
 def get_prompt(name: str) -> ChatPromptTemplate:
     if name == "session":
         return SESSION_PROMPT
