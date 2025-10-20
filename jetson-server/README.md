@@ -1,4 +1,4 @@
-# run_3cls_audio
+# 3 클래스 표정&자세 추론
 
 **Jetson Nano + TensorRT** 환경에서 **표정(negative / neutral / positive)** 과 **자세(좋음 / 보통 / 나쁨)·다리떨기**를 실시간 추정하고, **주석 영상·원본 영상·오디오·XML 이벤트**를 저장하는 단일 실행 스크립트입니다.  
 본 스크립트는 **GStreamer/RTSP 미사용**, OpenCV `VideoCapture`로 카메라를 직접 엽니다. `.sh` 없이 **`python3` 한 줄**로 실행합니다.
@@ -88,6 +88,78 @@ python3 run_3cls_audio.py --src 3 --out_video mp4/annot_out.mp4
 | `--mic_enable` | 플래그 | **켬** | 오디오 녹음 |
 | `--mic_device` | `plughw:2,0` | `plughw:2,0` | ALSA 장치(`arecord -l` 참조) |
 | `--mic_rate` / `--mic_channels` / `--mic_format` | `16000` / `1` / `S16_LE` | 동일 | 오디오 설정 |
+
+---
+
+## 🏛 서버 아키텍처 및 설계 (Server Architecture & Design)
+
+> 현재 파일은 **단일 스크립트** 형태지만, 내부를 **모듈·상태 머신**으로 나눠 운영합니다. 아래 설계는 실제 코드 구조를 반영하며, 이후 Flask 기반 서버로 확장할 때도 그대로 가져갈 수 있게 정의했습니다.
+
+### 1) 설계 목표 (Design Goals)
+
+- **저지연·안정성**: 카메라 캡처→추론→오버레이→저장까지 프레임 드롭 최소화
+- **일관된 타임라인**: 모든 이벤트/파일에 **단일 타임스탬프 체계** 적용
+- **독립성**: 캡처/추론/저장을 느슨히 결합해 장애 전파 최소화
+- **확장 용이성**: Flask API로의 무중단 확장(프로세스 제어/요약 API) 가능
+
+### 2) 핵심 컴포넌트 (Core Components)
+
+- **Capture Manager**
+  - OpenCV `VideoCapture`로 `/dev/videoN` 또는 파일/URL 입력
+  - 해상도/FPS/회전/세로영상 자동회전(`--auto_rotate`) 적용
+- **Inference Engines**
+  - **Pose TRT**: MoveNet 입력 전처리 → 키포인트 추론 → 자세/스켈레톤 렌더
+  - **FER TRT**: 얼굴 ROI(포즈 기반 박스, 폴백: Haar) 전처리 → 3클래스 확률 산출
+- **Event Detector & XML Logger**
+  - `bad_posture` / `negative_emotion` / `leg_shake`를 프레임 누적으로 **강/중/약** 판정
+  - 베이스라인(`b`) 이후 이벤트만 기록, 중복 이벤트는 쓰로틀링
+  - XML 파일은 실행/토글 기준으로 롤링 저장
+- **HUD Renderer**
+  - 스켈레톤·박스·라벨·FPS·상태 텍스트 오버레이
+- **Recorder**
+  - **VideoWriter 2개**: 주석(`*_annot.mp4`) / 원본(`*_raw.mp4`)
+  - **Audio**: `arecord` 서브프로세스로 WAV 동시 저장
+  - 토글(`t`) 시 안전하게 시작/중지, 파일명은 타임스탬프 기반
+- **Session Controller (State Machine)**
+  - 키 입력(`b/r/t/o/q`)으로 베이스라인/녹화/회전/종료 제어
+  - 종료 시 모든 리소스(Capture/Writer/Audio) **안전 해제**
+
+### 3) 데이터 플로우 (Data Flow)
+
+```
+[Camera/File] → Capture → (opt. rotate/resize) → Pose TRT → Face ROI → FER TRT
+     ↓                                              ↓
+   HUD ←─────────────── Event Detector & Logger ←───┘
+     ↓
+ Display ──(if recording)→ VideoWriter(annot/raw) + arecord(wav)
+```
+
+- 각 프레임에는 **monotonic 기반 타임스탬프**가 부여되어 HUD/이벤트/저장에 공통 사용
+- 파일 입력 시 `--sync_playback`으로 원래 FPS에 맞춰 재생(검증 용이)
+
+### 4) 동시성 & 성능 (Concurrency & Performance)
+
+- 메인 루프는 **단일 프로세스**(저지연), 오디오는 별도 **서브프로세스(arecord)**  
+- `--frame_skip` / `--process_every`로 연산량 조절, `--max_side`로 입력 크기 제한
+- I/O 에러(장치 점유, 포맷 불일치)는 즉시 감지해 **재시도/종료** 경로로 진입
+
+### 5) 오류 처리 & 안전 종료 (Error Handling & Shutdown)
+
+- Writer/arecord는 **토글 상태**에만 열림; 종료 시 close & flush 보장
+- 예외 발생 시 캡처/Writer/오디오 순서로 자원 반납 후 종료 코드 반환
+- XML 파일은 기록 중단 전까지 일관성 유지(중간 실패 시 다음 세션에서 새 파일)
+
+### 6) Flask 서버로의 확장 가이드 (Optional)
+
+- `server.py`에서 다음 함수를 노출:
+  - `start(device, width, height, fps, show_fps)`
+  - `stop()` / `baseline_on()` / `baseline_off()` / `record_toggle()`
+  - `latest_files()` / `summary(xml_path)`
+- REST 예시:
+  - `GET /command/start?src=3&width=640&height=480&fps=30&show_fps=1`
+  - `GET /command/stop`
+  - `GET /download/mp4/latest`, `/download/wav/latest`, `/download/xml/latest`
+- 단일 스크립트의 **상태 머신**을 서버에서 호출하도록 래핑하면 됩니다(코드 변경 최소).
 
 ---
 
