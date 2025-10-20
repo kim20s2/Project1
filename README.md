@@ -19,7 +19,7 @@
 * **역할:** 면접자의 영상과 음성을 실시간으로 수집하고 AI 모델을 통해 분석합니다.
 * **하드웨어:** Raspberry Pi 5 (+ Hailo-8) 또는 Jetson Nano
 * **주요 기능:**
-    * GStreamer와 RTSP를 통해 카메라 입력을 받아 면접자의 **얼굴 표정**(예: 웃음 여부)과 **신체 자세**(예: 바른 자세 여부)를 실시간으로 추론합니다. (TensorFlow, OpenCV, HailoRT 활용)
+    * GStreamer와 RTSP를 통해 카메라 입력을 받아 면접자의 **얼굴 표정**(예: 웃음 여부)과 **신체 자세**(예: 바른 자세 여부)를 실시간으로 추론합니다. (TensorFlow, OpenCV, HailoRT, TensorRT 활용)
     * 분석된 데이터를 시간대별로 태깅하여 `xml` 특징 파일로 생성합니다.
     * Flask 기반의 RESTful API를 통해 클라이언트의 요청 시 녹화된 영상/음성 원본과 `xml` 파일을 전송합니다.
 
@@ -56,7 +56,7 @@
 ### Server (Edge AI)
 
 * **Language:** Python
-* **AI/ML:** HailoRT, TensorFlow, OpenCV
+* **AI/ML:** HailoRT, TensorRT, TensorFlow, OpenCV
 * **Media:** GStreamer, RTSP
 * **API:** Flask
 
