@@ -71,26 +71,44 @@ stateDiagram-v2
 ## 5) 데이터 파이프라인(프레임 처리)
 ```mermaid
 flowchart LR
-    A[VideoCapture] -->|BGR frame| B[Resize/Rotate/Normalize]
-    B --> C[Pose TRT]
-    B --> D[Face ROI (from Pose)]
-    D -->|fallback| E[Haar Cascade]
-    D --> F[FER TRT]
-    E --> F
-    C --> G[Posture Scoring]
-    F --> H[FER Smoothing/Temp]
-    G --> I[Event Logic]
-    H --> I
-    B --> J[Overlay Compose]
-    I --> K[XML Writer]
-    J --> L[Display]
-    J --> M[VideoWriter(annot)]
-    A --> N[VideoWriter(raw)]
-    O[Mic arecord] --> P[WAV]
+    VC[VideoCapture]
+    P1[Resize / Rotate / Normalize]
+    Pose[Pose TRT]
+    FaceROI[Face ROI from Pose]
+    Haar[Haar Cascade]
+    FER[FER TRT]
+    Posture[Posture Scoring]
+    FERSmooth[FER Smoothing & Temp]
+    Event[Event Logic]
+    Overlay[Overlay Compose]
+    XML[XML Writer]
+    Display[Display]
+    VidAnnot[VideoWriter Annotated]
+    VidRaw[VideoWriter Raw]
+    Mic[Mic arecord]
+    WAV[WAV]
+
+    VC --> P1
+    P1 --> Pose
+    P1 --> FaceROI
+    FaceROI -->|fallback| Haar
+    FaceROI --> FER
+    Haar --> FER
+    Pose --> Posture
+    FER --> FERSmooth
+    Posture --> Event
+    FERSmooth --> Event
+    P1 --> Overlay
+    Event --> XML
+    Overlay --> Display
+    Overlay --> VidAnnot
+    VC --> VidRaw
+    Mic --> WAV
 ```
 
+
 ## 6) 파일 I/O 규칙
-- **단독 실행(기본)**: `/home/jetson10/fer/{mp4,wav,xml}` 하위에 **타임스탬프 기반 파일명** 생성
+- **단독 실행(기본)**: `/home/jetson10/fer/{mp4,wav,xml}` 하위에 **타임스탬프 기반 파일명** 생성  
   - 예) `mp4/rec_YYYYmmdd_HHMMSS_annot.mp4`, `mp4/rec_..._raw.mp4`, `wav/rec_... .wav`, `xml/xml_... .xml`
 - **서버 모드**: `--out_dir /home/jetson10/fer/server/srv_tmp`로 고정 폴더 + **고정 파일명**(`video_ai.mp4`, `video.mp4`, `audio.wav`, `log.xml`)
 - **안정화 대기**: 정지 직후 파일이 완전히 flush될 때까지 **size 변화가 멈출 때**까지 대기 후 응답
@@ -108,7 +126,7 @@ flowchart LR
 - **Baseline 비교**: 첫 자세를 기준선으로 저장 후, 기울기/비대칭/상체각도를 지속 비교해 **좋음/보통/나쁨** 등급 판정
 - **감정 비율 HUD**: 프레임별 FER 결과를 누적/슬라이딩 윈도우로 집계 → 비율 표시
 - **다리 떨림**: 하체 ROI에서 프레임간 차분 → 시계열 FFT → 특정 주파수 대역 에너지 임계값 초과 시 이벤트
-- **XML 스키마(요지)**: `<session>` 루트 하에 `<event type="negative_emotion|bad_posture|leg_shake" severity="low|mid|high" t0="..." t1="..."/>`를 누적
+- **XML 스키마(요지)**: `<event type="negative_emotion|bad_posture|leg_shake" severity="low|mid|high" t0="..." t1="..."/>` 누적
 - **퍼포먼스 스위치**: `--frame_skip`, `--process_every`, `--max_side`로 CPU/GPU 부하 관리
 - **화질 보정**: `--fer_gamma`, `--fer_clahe`, `--fer_tta_flip`, `--fer_temp`로 FER 안정화
 
@@ -149,3 +167,87 @@ flowchart LR
 - [ ] 엔진 파일 경로 일치 — `scripts/face_3cls.engine`, `scripts/pose_movenet.engine`
 - [ ] 디스크 용량/쓰기 권한 확보 — mp4/wav/xml 생성 가능한지 사전 테스트
 - [ ] 네트워크 포트 5000 오픈(서버 모드) — 방화벽/포트 충돌 여부 체크
+
+---
+
+# 13) 모델 설명 — 얼굴 표정 3‑Class & 자세 추정 (MoveNet)
+
+## 13.1 얼굴 표정 분류 (3‑Class, MobileNetV2 백본)
+
+### (1) 모델 구조
+- **백본**: MobileNetV2 (depthwise separable conv + inverted residual)
+- **헤드**: GlobalAvgPool → (Dropout) → Linear(FC) → Softmax
+- **클래스(3)**: `Positive`, `Neutral`, `Negative`
+
+**라벨 매핑**
+| Target   | 포함 라벨                                 |
+|---------|-------------------------------------------|
+| Positive| happy                                     |
+| Neutral | neutral + (기본) surprise                 |
+| Negative| angry, disgust, fear, sad                 |
+
+### (2) 학습 세부 정보
+- **데이터셋**: FER2013 (Kaggle)
+- **Train 수**: 약 **24,000장**
+- **Validation 수**: 약 **4,300장**
+- **정확도(Val)**: **~80%**
+- **학습 스크립트**: `train_fer_3class_simple.py`  *(7‑class 학습: `train_fer.py`)*
+- **Calib 참고**: FER2013에서 약 **500장** 참고 (엔진/정량화 시)
+
+### (3) 추론 파이프라인 & 성능(젯슨나노)
+- **파이프라인**: **얼굴 검출 → 얼굴 크롭/전처리 → 3‑Class 분류 → HUD/집계**
+- **입력 장치**: USB 웹캠 **640×480** (완료)
+- **FPS**: FER 단독 **~25 FPS**, FER+Pose 동시 **~15 FPS**
+
+### (4) Confusion Matrix (3‑Class) — 이미지 별첨
+- Validation CM : <img width="1000" height="850" alt="image" src="https://github.com/user-attachments/assets/3a41f775-373a-4e38-ac2d-6de8bfadf491" />
+
+---
+
+## 13.2 자세 추정 (MoveNet Lightning, FP16 변형)
+
+### (1) 모델 개요
+- **백본**: 경량 CNN (MobileNetV2 계열) + **FPN**
+- **입력**: 1×192×192×3 RGB (정규화)
+- **출력**: 1×1×17×3 → **COCO 17 keypoints**의 (y,x,score)
+- **변형**: **FP16(TFLite)** — 메모리/연산량 절감(속도↑, 정밀 소폭↓)
+- **포지셔닝**: **Lightning** = 저지연(Thunder 대비 작고 빠름)
+
+> 참고: MoveNet 튜토리얼 — https://www.tensorflow.org/hub/tutorials/movenet?hl=ko
+
+### (2) 스코어링 규칙(기본값)
+**Baseline(b 키) 캡처 이후, 각 지표의 *(현재 − baseline)* 상대 악화분만 감점. 총점 100 → Good/Okay/Bad.**
+
+| 지표 | 정의(정규화/각도) | 의미 | 감점 시작(≥) |
+|---|---|---|---|
+| ShoulderSlope | \|LShoulder.y − RShoulder.y\| / 어깨폭 | 어깨 수평 틀어짐 | **0.15** |
+| TorsoLean | 골반중심→어깨중심 vs 수직(0,1) 각도° | 상체 숙임/젖힘 | **8°** |
+| FwdHead | \|Ear.x − Shoulder.x\| / 어깨폭 | 거북목 | **0.35** |
+| Head Roll | 귀-귀 수평 대비 각도° | 머리 기울임 | **8°** |
+| Head Yaw | 코.x의 귀-귀 중점 대비 좌우 편차(귀간격 정규화) | 좌/우 고개 | **0.18** |
+| Head Pitch | 코.y의 귀-귀 선 대비 위/아래 편차(귀간격 정규화) | 상/하 고개 | **0.22** |
+| NoseShoulderVert | \|코.y − 어깨중심.y\| / 어깨폭 (baseline 대비) | 머리 위/아래 보조 | **0.12** |
+| ArmSpread | 손목(or 팔꿈치) x의 몸통 중선 대비 거리 / 어깨폭 (평균, baseline 대비) | 팔 벌림 | **0.65** |
+
+**다리 떨림**: 하체 ROI 프레임 차분 → **FFT 스펙트럼 에너지** 임계 초과 시 이벤트.
+
+---
+
+## 13.3 동시 추론 & 이벤트 규칙 (XML)
+
+### (1) 동시 추론 실행
+- 구성: `trt_utils.py` + `run_fer_pose.py`
+- 실행 예: `python3 run_fer_pose.py --src 1 --show_fps`
+- 성능: 640×480 기준 **~15 FPS**
+
+### (2) 이벤트 기록 규칙
+- **표정**: `Negative` **비율 ≥ 10%** → 이벤트 기록
+- **자세**: **Posture Score ≤ 40점** → 이벤트 기록
+- **XML**(예시):
+```xml
+<event type="negative_emotion|bad_posture|leg_shake"
+       severity="low|mid|high"
+       t0="..." t1="..." />
+```
+
+---
