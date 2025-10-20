@@ -148,6 +148,9 @@ flowchart LR
 ```
 /home/jetson10/fer
 ├── scripts/
+│   ├── mp4/
+│   ├── wav/
+│   ├── xml/
 │   ├── run_3cls_audio2.py      # 메인 추론/녹화
 │   ├── trt_utils.py            # TensorRT 래퍼
 │   ├── face_3cls.engine        # FER 엔진
@@ -241,8 +244,8 @@ flowchart LR
 - 성능: 640×480 기준 **~15 FPS**
 
 ### (2) 이벤트 기록 규칙
-- **표정**: `Negative` **비율 ≥ 10%** → 이벤트 기록
-- **자세**: **Posture Score ≤ 40점** → 이벤트 기록
+- **표정**: `Negative` **비율 ≥ 30%** → 이벤트 기록
+- **자세**: **Posture Score ≤ 50점** → 이벤트 기록
 - **XML**(예시):
 ```xml
 <event type="negative_emotion|bad_posture|leg_shake"
