@@ -4,6 +4,11 @@
 
 카메라와 마이크 입력을 받아 AI 모델을 통해 사용자의 포즈(자세 교정)와 표정(웃음 여부)을 실시간으로 인식하며, 클라이언트의 요청에 따라 분석 결과를 전송합니다.
 
+<center>
+<img src="../assets/images/pi_webcam.jpeg" alt="Image" width="" height="200">
+<img src="../assets/images/pi_a6700.jpeg" alt="Image" width="" height="200">
+</center>
+
 ## 🛠 설치 방법 (Installation)
 
 ### 1\. Hailo-8 하드웨어 및 펌웨어 설정
@@ -121,8 +126,6 @@ bash run_po.sh
 ### TODO
 
 #### 추후 추가사항
-
-* 맨 위: 전체 시스템을 보여주는 하드웨어 사진
 
 * AI 분석기 설명: 스켈레톤과 표정 인식을 보여주는 핵심 기능 데모 GIF
 
