@@ -29,7 +29,6 @@ class ParallelModelInference:
 
         self.hef_path3 = os.path.join(self.base_path, 'models', 'scrfd_500m.hef')  # 얼굴
 
-
         self.input_size1 = input_size1
         self.input_size2 = input_size2
         self.conf_threshold = conf_threshold
@@ -43,11 +42,11 @@ class ParallelModelInference:
         self.vdevice = VDevice(params)
         
         # 두 개의 HEF 모델 로드
-        print(f"Loading models: {hef_path1}, {hef_path2}, {hef_path3}")
+        print(f"Loading models: {hef_path1}, {hef_path2}, {self.hef_path3}")
         self.model1 = self.vdevice.create_infer_model(hef_path1)
         self.model2 = self.vdevice.create_infer_model(hef_path2)
 
-        self.model_bbox = self.vdevice.create_infer_model(hef_path3)  # 얼굴 인식 모델 추가
+        self.model_bbox = self.vdevice.create_infer_model(self.hef_path3)  # 얼굴 인식 모델 추가
         
         # 입력/출력 포맷 설정 (UINT8 사용)
         self.model1.input().set_format_type(FormatType.UINT8)
