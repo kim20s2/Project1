@@ -4,8 +4,6 @@ from core.whisper_run import transcribe_file
 from core.analysis_pose import parse_posture_summary
 from core.analysis_audio import analyze_stability, get_stability_score
 
-
-
 # ── 업로드 모드(배치 분석) ────────────────────────────────────────────
 def render_upload_section(*, ss, whisper_model, feedback_chain):
     with st.expander("📤 업로드 모드", expanded=False):

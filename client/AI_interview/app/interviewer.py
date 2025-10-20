@@ -245,8 +245,8 @@ def render_interviewer_panel(
     # ── 면접관 영상은 mid에서 렌더
     left, mid, right = st.columns([2.5, 2, 2.5])
     with mid:
-        if ss.get("eva_playing") and ss.get("eva_current_idx") == cur_idx:
-            st.video(cur["mp4"], start_time=0)
+        if ss.get("eva_playing") and ss.get("eva_current_idx") is not None:
+          st.video(ss.eva_videos[ss.eva_current_idx]["mp4"], start_time=0)
 
     # ── 타이머: 조용히 갱신해서 끝나면 자동 활성화
     if ss.get("eva_ends_at"):
@@ -325,6 +325,9 @@ def render_interviewer_panel(
                     ss.eva_stopped = True
                     ss.eva_pending_analysis = True   # 다음 런에서 run_analysis_if_needed()가 실행
                     ss.eva_auto_saved_once = False
+                    # ★ 스냅샷(이 답변은 어떤 세션/몇 번째 질문이었는지 고정)
+                    ss.eva_session_for_answer = ss.session_id
+                    ss.eva_qidx_for_answer    = ss.eva_qidx
                     st.success("답변이 종료되었습니다. 분석을 시작합니다…")
 
                     # ★ 즉시 UI 재렌더 → '답변 시작' 버튼이 바로 활성화됨
@@ -334,13 +337,21 @@ def render_interviewer_panel(
                     st.error(f"요청 실패: {e}")
     # 3) 면접 종료(세션 종료)
     with c3:
-        end_enabled = (not ss.eva_recording) and (len(ss.eva_history) > 0 or ss.eva_pending_analysis)
+        end_enabled = (
+        (not ss.get("eva_recording", False))
+        and (len(ss.get("eva_history", [])) > 0 or ss.get("eva_pending_analysis", False))
+        and (not ss.get("eva_pending_final", False))  # ← 추가!
+    )
         if st.button("🏁 면접 종료", use_container_width=True, disabled=not end_enabled, key="btn_end"):
             ss.eva_pending_final = True    # ✅ 총평을 실행하라는 신호만 남기기
             st.rerun()                     # ✅ 다음 런에서 총평 블록 실행
     # 면접 내용 저장(mp4, wav, xml)
     if ss.eva_stopped and not ss.eva_auto_saved_once:
         kinds = ["wav", "xml"] if ss.get("mp4_manual_only") else ["mp4", "wav", "xml"]
+            # ★ 스냅샷으로 고정
+        sess_for_save = ss.get("eva_session_for_answer", ss.session_id)
+        qidx_for_save = ss.get("eva_qidx_for_answer", ss.eva_qidx)
+
         with st.spinner("저장 중…"):
             saved = save_assets_after_stop(
             server_url=server_url,
@@ -439,13 +450,17 @@ def render_interviewer_panel(
                     st.exception(e)
                 finally:
                     ss.eva_pending_analysis = False  # ✅ 여기서 확실히 내리기
+                    ss.eva_session_for_answer = None   # 스냅샷 해제
+                    ss.eva_qidx_for_answer    = None
 
+                    
                  # ✅ 방금 분석을 끝냈고 사용자가 미리 🏁 눌러둔 경우에만 1번 rerun
     if ss.eva_pending_final and not ss.get("_reran_to_final_once", False):
         ss["_reran_to_final_once"] = True
         st.rerun()
 
     elif ss.eva_pending_final and not ss.eva_pending_analysis:
+        
         with final_box:
           with st.spinner("🧾 총평 생성 중…"):
             try:
@@ -501,6 +516,9 @@ def render_interviewer_panel(
                 st.write(summary_text)
 
                 st.success("면접 총평 생성 완료")
+                  # ✅ 그리고 다음 렌더에서도 다시 보여줄 수 있게 세션에 저장
+                ss.eva_last_summary = summary_text
+                ss.eva_show_last_summary = True
 
             except Exception as e:
                 # LLM 실패 시에도 지표 박스는 안 보여주고, 간단 안내만
@@ -533,7 +551,17 @@ def render_interviewer_panel(
                 # 플래그 정리
                 ss.eva_pending_final = False
                 ss["_reran_to_final_once"] = False
-        
+
+                # 🔁 버튼 상태 최신화 위해 강제 한 번 더 렌더
+                st.rerun()
+        # 총평을 다음 렌더에서 다시 보여주기 (rerun 후에도 보이게)
+    if ss.get("eva_show_last_summary"):
+        with final_box:
+            st.markdown("## 🧾 면접 결과")
+            st.write(ss.get("eva_last_summary") or "(요약 없음)")
+            st.success("면접 총평 생성 완료")
+        # 한 번 보여줬으면 플래그 내림
+        ss.eva_show_last_summary = False
     # 상태 표시
     st.markdown("🟢 **답변 중입니다...**" if ss.eva_recording else "⚪ **면접 대기 중**")
     st.markdown("---")

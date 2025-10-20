@@ -1,9 +1,8 @@
-import os, time, tempfile
+import os
 from pathlib import Path
-import requests
 import streamlit as st
 from app.upload_section import render_upload_section
-from core.whisper_run import load_whisper, transcribe_file
+from core.whisper_run import load_whisper
 from core.chains import build_feedback_chain
 from interviewer import render_interviewer_panel
 from adapters.interviewer_adapters import my_stt_from_path, my_feedback
@@ -33,7 +32,6 @@ if not GOOGLE_API_KEY:
     st.stop()
 
 # --- 체인: 세션당 1회만 생성 --- # 업로드 모드 
-ss = st.session_state
 if "feedback_chain" not in ss:
     ss["feedback_chain"] = build_feedback_chain(
         api_key=GOOGLE_API_KEY,

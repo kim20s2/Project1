@@ -1,4 +1,3 @@
-# posture_auto.py
 import json, os
 from core.analysis_pose import parse_posture_summary as parse_legacy, normalize_posture
 from core.analysis_pose_jetson import parse_posture_summary_jetson
