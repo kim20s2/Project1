@@ -4,6 +4,7 @@ import requests, tempfile, base64, shutil,time
 import os, wave,glob,uuid
 import numpy as np, math
 import time 
+import statistics as stats, json
 from pathlib import Path
 from typing import Callable, Iterable, Tuple
 from core.analysis_audio import analyze_stability, get_stability_score
@@ -11,7 +12,7 @@ from core.analysis_pose import parse_posture_summary, normalize_posture
 from adapters.interviewer_adapters import my_stt_from_path as stt_fn, load_persona_videos, shuffle_order
 from core.recording_io import save_assets_after_stop, BASE_DIR 
 from core.chains import get_prompt,call_llm
-import statistics as stats, json
+from adapters.posture_adapters import parse_posture_auto, build_nonverbal_json
 
 SHOW_PER_ANSWER_METRICS = False  # 답변별 지표는 숨김
 SHOW_FINAL_METRICS      = True   # 총평에서만 지표 표시
@@ -285,32 +286,32 @@ def render_interviewer_panel(
 
         with col_start:
             if st.button("▶️ 답변 시작", use_container_width=True, disabled=ss.eva_recording, key="btn_start"):
-        
-                    COUNTDOWN = 5  # 지연(초)
-                    msg = st.empty()
-                    bar = st.progress(0, text="곧 면접을 시작합니다…")
-                    try:
-                        for sec in range(COUNTDOWN, 0, -1):
-                            msg.info(f"🕒 {sec}초 후 답변 시작")
-                            bar.progress(int(((COUNTDOWN - sec + 1) / COUNTDOWN) * 100))
-                            time.sleep(1)
+                COUNTDOWN = 5
+                msg = st.empty()
+                bar = st.progress(0, text="곧 면접을 시작합니다…")
+                try:
+                    # 1) 서버 녹음 먼저 시작
+                    r = requests.get(f"{server_url}/command/start_record", timeout=(3.05, 8))
+                    r.raise_for_status()
 
-                        # ⬇️ 카운트다운 끝난 뒤 실제 녹음 시작
-                        r = requests.get(f"{server_url}/command/start_record", timeout=(3.05, 8))
-                        r.raise_for_status()
+                    # 2) 상태 갱신(버튼 비활성화 등)
+                    ss.eva_recording = True
+                    ss.eva_stopped = False
+                    ss.eva_auto_saved_once = False
+                    ss.eva_last_wav = None
 
-                        ss.eva_recording = True
-                        ss.eva_stopped = False
-                        ss.eva_auto_saved_once = False
-                        ss.eva_last_wav = None
+                    # 3) 그 다음 카운트다운(녹음은 이미 진행 중)
+                    for sec in range(COUNTDOWN, 0, -1):
+                        msg.info(f"🕒 {sec}초 후 답변 시작")
+                        bar.progress(int(((COUNTDOWN - sec + 1) / COUNTDOWN) * 100))
+                        time.sleep(1)
 
-                        st.success("""면접이 시작했습니다.
-                                      답변을 말씀해 주세요.""")
-                    except requests.exceptions.RequestException as e:
-                        st.error(f"요청 실패: {e}")
-                    finally:
-                        bar.empty()
-                        msg.empty()
+                    st.success("면접이 시작되었습니다. 답변을 말씀해 주세요.")
+                except requests.exceptions.RequestException as e:
+                    st.error(f"요청 실패: {e}")
+                finally:
+                    bar.empty()
+                    msg.empty()
 
         with col_stop:
             if st.button("⏹️ 답변 종료", use_container_width=True, disabled=not ss.eva_recording, key="btn_stop"):

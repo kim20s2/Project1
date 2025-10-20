@@ -3,9 +3,6 @@ from pathlib import Path
 import requests
 import streamlit as st
 from app.upload_section import render_upload_section
-from core.storage import get_save_dir, safe_name, save_bytes
-from core.remote_fetch import wait_until_ready
-from core.analysis_pose import parse_posture_summary
 from core.whisper_run import load_whisper, transcribe_file
 from core.chains import build_feedback_chain
 from interviewer import render_interviewer_panel
