@@ -53,3 +53,15 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# logs 
+*.log 
+
+# big files
+resmasking.hef
+
+# notebook
+*.ipynb
+	
+# big mp4
+C0189.MP4
