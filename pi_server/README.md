@@ -4,10 +4,13 @@
 
 카메라와 마이크 입력을 받아 AI 모델을 통해 사용자의 포즈(자세 교정)와 표정(웃음 여부)을 실시간으로 인식하며, 클라이언트의 요청에 따라 분석 결과를 전송합니다.
 
-<center>
+![](../assets/images/pi_webcam.jpeg) | ![](../assets/images/pi_a6700.jpeg)
+---|---|
+
+<!-- <center>
 <img src="../assets/images/pi_webcam.jpeg" alt="Image" width="40%" height="auto">
 <img src="../assets/images/pi_a6700.jpeg" alt="Image" width="40%" height="auto">
-</center>
+</center> -->
 
 ## 🛠 설치 방법 (Installation)
 
