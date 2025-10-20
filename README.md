@@ -15,8 +15,9 @@
 <center>
 <img src="./assets/images/server&client1.png" alt="Image" width="350" height="350">
 </center> -->
-
+<p>
 <center> <img src="./assets/animations/face.gif" alt="Face Animation" width="35%" height="auto"> <img src="./assets/animations/pose.gif" alt="Pose Animation" width="39%" height="auto"> </center>
+</p>
 
 ### 1\. Edge AI 서버 (Server)
 
