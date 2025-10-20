@@ -1,0 +1,50 @@
+# === Core ===
+numpy>=1.26.0
+pandas>=2.2.0
+scipy>=1.12.0
+
+# === Audio Analysis ===
+librosa>=0.10.1
+soundfile>=0.12.1
+audioread>=3.0.1
+pydub>=0.25.1
+ffmpeg-python>=0.2.0
+
+# === Whisper / ASR ===
+openai-whisper>=20231117
+torch>=2.2.0
+torchaudio>=2.2.0
+
+# === Voice Features (optional: openSMILE) ===
+opensmile>=2.4.0
+
+# === LLM & LangChain ===
+langchain>=0.2.12
+langchain-core>=0.2.6
+langchain-community>=0.2.6
+google-generativeai>=0.3.2
+openai>=1.35.0
+
+# === Web UI ===
+streamlit>=1.36.0
+
+# === XML / JSON Processing ===
+lxml>=5.2.1
+xmltodict>=0.13.0
+
+# === Machine Learning (for posture/emotion models) ===
+tensorflow>=2.16.0
+opencv-python>=4.10.0
+scikit-learn>=1.5.0
+
+# === Utility ===
+tqdm>=4.66.4
+matplotlib>=3.8.3
+seaborn>=0.13.2
+
+# === Optional (for deployment/server) ===
+fastapi>=0.111.0
+uvicorn>=0.29.0
+requests>=2.31.0
+python-dotenv>=1.0.1
+
