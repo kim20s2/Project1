@@ -1,2 +1,2 @@
 <?xml version='1.0' encoding='utf-8'?>
-<merged_session><frame timestamp="2025-10-20T12:00:25.470952" elapsed_seconds="0.7"><analysis><result type="body_tilt" message="Body asymmetry detected (1.10, 1.03)" /></analysis></frame><frame timestamp="2025-10-20T12:00:26.737618" elapsed_seconds="1.9"><analysis><result type="body_tilt" message="Body asymmetry detected (1.10, 1.03)" /></analysis></frame></merged_session>
+<merged_session />
