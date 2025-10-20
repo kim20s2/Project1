@@ -16,10 +16,7 @@
 <img src="./assets/images/server&client1.png" alt="Image" width="350" height="350">
 </center> -->
 
-<center>
-<img src="./assets/animations/face.gif" alt="Image" width="" height="400">
-<img src="./assets/animations/pose.gif" alt="Image" width="" height="400">
-</center> 
+<center> <img src="./assets/animations/face.gif" alt="Face Animation" width="35%" height="auto"> <img src="./assets/animations/pose.gif" alt="Pose Animation" width="39%" height="auto"> </center>
 
 ### 1\. Edge AI 서버 (Server)
 
@@ -31,7 +28,7 @@
       * Flask 기반의 RESTful API를 통해 클라이언트의 요청 시 녹화된 영상/음성 원본과 `xml` 파일을 전송합니다.
 
 <center>
-<img src="./assets/animations/client.webp" alt="Image" width="" height="400">
+<img src="./assets/animations/client.webp" alt="Image" width="90%" height="auto">
 </center> 
 
 
@@ -51,7 +48,7 @@
 ## ⚙️ 작동 흐름 (Workflow)
 
 <center>
-<img src="./assets/graphs/RESTful_flow.svg" alt="Image" width="525" height="525">
+<img src="./assets/graphs/RESTful_flow.svg" alt="Image" width="65%" height="auto">
 </center>
 
 1.  **(Client)** 사용자가 Streamlit 앱에서 "면접 시작" 버튼을 누릅니다.

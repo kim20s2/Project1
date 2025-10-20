@@ -5,8 +5,8 @@
 카메라와 마이크 입력을 받아 AI 모델을 통해 사용자의 포즈(자세 교정)와 표정(웃음 여부)을 실시간으로 인식하며, 클라이언트의 요청에 따라 분석 결과를 전송합니다.
 
 <center>
-<img src="../assets/images/pi_webcam.jpeg" alt="Image" width="" height="200">
-<img src="../assets/images/pi_a6700.jpeg" alt="Image" width="" height="200">
+<img src="../assets/images/pi_webcam.jpeg" alt="Image" width="40%" height="auto">
+<img src="../assets/images/pi_a6700.jpeg" alt="Image" width="40%" height="auto">
 </center>
 
 ## 🛠 설치 방법 (Installation)
@@ -25,6 +25,8 @@
 `hailoRT` 설치 후, 프로젝트 폴더 내의 Python 가상 환경(`env`)이 정상적으로 실행되는지 확인합니다.
 
 ## 🚀 사용 방법 (Usage)
+
+<center> <img src="../assets/animations/server_demo.webp" alt="Face Animation" width="60%" height="auto"> </center>
 
 ### 1\. 가상 환경 활성화
 
