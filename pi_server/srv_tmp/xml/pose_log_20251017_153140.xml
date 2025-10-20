@@ -1,2 +1,0 @@
-<?xml version='1.0' encoding='utf-8'?>
-<pose_session start_time="2025-10-17T15:31:40.812691"><frame timestamp="2025-10-17T15:31:50.826297" elapsed_seconds="9.8"><analysis><result type="head_tilt" message="Head tilt detected (123.0)" /></analysis></frame><frame timestamp="2025-10-17T15:31:59.201297" elapsed_seconds="18.1"><analysis><result type="head_tilt" message="Head tilt detected (24.0)" /></analysis></frame></pose_session>

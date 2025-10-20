@@ -1,120 +1,92 @@
 # 오만과 편견 (Pride and Prejudice)
 
-> **제목 의미**: 면접 상황을 AI 분석 결과를 통해 표정이나 자세를 정량적으로 표현하여, 면접이 얼마나 딱딱하고 형식적인지를 보여줍니다. 동시에, 형식적인 것도 중요하다는 메시지를 담고 있습니다.
+***AI 면접관의 '편견'과 사용자의 '오만(무의식적 습관)'을 극복하는 가상 면접 피드백 시스템***
 
----
+본 프로젝트는 면접을 준비하는 사용자에게 AI 기반의 종합적인 피드백을 제공하는 시스템입니다.
 
-## 📌 프로젝트 개요
+사용자의 시각적 요소(자세, 표정)와 청각적 요소(목소리 톤, 답변 내용)를 실시간으로 분석하고, 면접 종료 후 Google Gemini (LLM)를 통해 개선점을 담은 상세한 리포트를 제공합니다.
 
-이 프로젝트는 **라즈베리파이5 + Hailo Edge Device** 및 **젯슨나노 + GPU**를 활용하여 AI 모델을 구동하고,  
-면접자의 **표정 인식**과 **자세 인식**을 통해 면접 상황을 정량적으로 평가하는 **AI 면접 평가 시스템**입니다.  
-또한 **라즈베리파이5**와 **젯슨나노** 두 가지를 다 활용함으로써 다양한 임베디드 시스템 모델에서 어플리케이션으로 돌려 보고 얼마나 성능차이가 나는지 비교할 수 있습니다.
+## 🏛️ 시스템 아키텍처 (System Architecture)
 
-- 면접자의 답변(목소리의 떨림, 불안정함, 크기, 자세 등)을 분석  
-- 질문/답변 데이터를 LLM(ChatGPT 등)에 전달  
-- LLM이 종합적으로 평가하여 점수와 기준을 산출  
-- 최종적으로 PDF 등 문서 형태로 결과를 제공  
+이 시스템은 실시간 데이터 수집 및 AI 추론을 담당하는 **Edge AI 서버**와, 데이터를 취합하여 사용자에게 피드백을 생성/제공하는 **클라이언트 애플리케이션**으로 구성됩니다.
 
-**배경**: 혼자서도 손쉽게 AI 면접을 체험하고, 객관적인 평가를 받아보고자 하는 아이디어에서 출발했습니다.
+<center>
+<img src="./assets/images/server&client1.png" alt="Image" width="350" height="350">
+</center>
 
----
+### 1. Edge AI 서버 (Server)
 
-## 🔄 시스템 흐름도
+* **역할:** 면접자의 영상과 음성을 실시간으로 수집하고 AI 모델을 통해 분석합니다.
+* **하드웨어:** Raspberry Pi 5 (+ Hailo-8) 또는 Jetson Nano
+* **주요 기능:**
+    * GStreamer와 RTSP를 통해 카메라 입력을 받아 면접자의 **얼굴 표정**(예: 웃음 여부)과 **신체 자세**(예: 바른 자세 여부)를 실시간으로 추론합니다. (TensorFlow, OpenCV, HailoRT, TensorRT 활용)
+    * 분석된 데이터를 시간대별로 태깅하여 `xml` 특징 파일로 생성합니다.
+    * Flask 기반의 RESTful API를 통해 클라이언트의 요청 시 녹화된 영상/음성 원본과 `xml` 파일을 전송합니다.
 
-아래 다이어그램은 면접 평가 시스템의 전체 흐름을 보여줍니다.
+### 2. 클라이언트 (Client)
 
-<img width="480" height="640" alt="Copilot_20251016_145148" src="https://github.com/user-attachments/assets/79427c4a-0b88-42f4-954a-c1873c27c874" />
+* **역할:** 서버로부터 데이터를 받아 사용자에게 보여주고, LLM을 통해 최종 피드백을 생성합니다.
+* **주요 기능:**
+    * Streamlit 기반의 UI를 통해 사용자로부터 면접 시작/종료 명령을 받습니다.
+    * 서버에 녹화 결과물(영상, 음성, `xml`)을 요청하고 다운로드합니다.
+    * **음성 분석:**
+        * `Whisper`를 사용해 음성 파일을 텍스트(답변 내용)로 변환합니다.
+        * `OpenSmile`을 사용해 목소리 떨림, 톤, 말의 빠르기 등 음향적 특징을 추출합니다.
+    * **LLM 피드백 생성:**
+        * `Langchain`을 사용하여 [서버의 `xml` 데이터 (자세, 표정)] + [클라이언트의 분석 데이터 (답변 내용, 목소리 특징)]를 종합합니다.
+        * 모든 데이터를 Google Gemini (LLM)에 전송하여 "면접관"의 관점에서 상세한 피드백 리포트를 생성합니다.
 
-**흐름**  
-1. **카메라 입력** → 면접자의 영상/음성 수집  
-2. **온 디바이스 AI (표정 인식 + 자세 인식)** → 실시간 분석  
-3. **LLM 평가** → 답변 내용 + 비언어적 신호 종합 평가  
-4. **PDF 리포트** → 점수와 평가 기준 문서화  
+## ⚙️ 작동 흐름 (Workflow)
 
----
+<center>
+<img src="./assets/graphs/RESTful_flow.svg" alt="Image" width="525" height="525">
+</center>
 
-## 🎯 주요 기능 및 목표
+1.  **(Client)** 사용자가 Streamlit 앱에서 "면접 시작" 버튼을 누릅니다.
+2.  **(Server)** 클라이언트의 요청을 받아 카메라/마이크 녹화를 시작함과 동시에 AI 추론(자세, 표정)을 시작합니다.
+3.  **(Client)** 사용자가 "면접 종료" 버튼을 누릅니다.
+4.  **(Server)** 녹화를 중지하고, 수집된 특징 데이터를 `xml` 파일로 최종 정리합니다.
+5.  **(Client)** 서버에 결과물을 요청하여 영상, 음성, `xml` 파일을 다운로드합니다.
+6.  **(Client)** `Whisper`와 `OpenSmile`로 음성 파일을 분석하고, `xml` 파일을 파싱합니다.
+7.  **(Client)** `Langchain`을 통해 모든 데이터를 취합하여 Google Gemini API에 전송합니다.
+8.  **(Client)** LLM이 생성한 피드백 리포트(개선점, 칭찬 등)를 사용자에게 보여줍니다.
 
-- **표정 인식 + 자세 인식 모델**을 동시에 활용  
-- **SadTalker 기능**을 이용해 면접자의 얼굴과 움직임을 합성 → 실제 면접처럼 생동감 있는 시뮬레이션  
-- 질문 단위로 **“면접 시작 / 면접 끝” 버튼**을 눌러 진행  
-- 모든 질문이 끝나면 면접관이 “면접이 끝났습니다.”라고 알리고,  
-  LLM이 종합적으로 평가하여 **점수와 평가 기준**을 출력  
-- **목표**: 이러한 과정을 통해 **적절하고 신뢰할 수 있는 평가 점수**를 산출하는 것  
+## 💻 기술 스택 (Tech Stack)
 
----
+### Server (Edge AI)
 
-### 요구 사항
-- Raspberry Pi 5
-- Hailo Edge Device
-- Jetson Nano
-- Python 3.10+
-- OpenCV, PyTorch, SadTalker, Hailo SDK 등
+* **Language:** Python
+* **AI/ML:** HailoRT, TensorRT, TensorFlow, OpenCV
+* **Media:** GStreamer, RTSP
+* **API:** Flask
 
----
+### Client (Feedback Generation)
 
-### 설치
-```bash
-git clone https://github.com/won-jong-wan/Pride-and-Prejudice.git
-cd Pride-and-Prejudice
-pip install -r requirements.txt
-```
+* **Language:** Python
+* **Framework:** Streamlit
+* **LLM Orchestration:** Langchain
+* **Audio Analysis:** Whisper (STT), OpenSmile (Acoustic Features)
 
----
+### LLM
 
-### 실행 (예정)
-```bash
-python run_interview.py --camera /dev/video0
-```
+* Google Gemini (via Google AI Studio)
 
----
+## 🚀 설치 및 실행 방법 (Setup & Usage)
 
-### 📂 프로젝트 구조
-```
-Pride-and-Prejudice/
-├─ data/          # 텍스트 및 데이터
-├─ scripts/       # 분석 및 처리 스크립트
-├─ notebooks/     # Jupyter 노트북
-├─ reports/       # 결과 리포트
-├─ requirements.txt
-└─ README.md
-```
+### 1. 서버 (Server)
 
----
+* 서버(Raspberry Pi / Jetson Nano) 설정 및 실행 방법은 아래 링크를 참조하세요.
+* [Raspberry Pi 서버 설치 가이드 (Raspberry Pi Server Setup Guide)](./pi_server/README.md)
+* [Jetson Nano 서버 설치 가이드 (Jetson Nano Server Setup Guide) - 링크 추가 예정](./jetson_server/README.md)
 
-### 🛠️ 사용 예시
-아직 구체적인 사용 예시는 준비되지 않았습니다. 향후 실제 면접 시뮬레이션 영상과 평가 리포트 샘플을 추가할 예정입니다.
+### 2. 클라이언트 (Client)
 
----
+* 클라이언트 애플리케이션 실행 방법은 아래 링크를 참조하세요.
+* [클라이언트 실행 가이드 (Client Usage Guide) - 링크 추가 예정](./client/README.md)
 
-### 🗺️ 로드맵
+### TODO
 
-    [o] 표정 인식 모델 연동
 
-    [o] 자세 인식 모델 연동
+* 시스템 아키텍처 바로 위: 최종 결과물 데모 
 
-    [x] SadTalker 기반 시뮬레이션
-
-    [o] LLM 평가 시스템 연결
-
-    [x] PDF 리포트 자동 생성
-
----
-
-### 🤝 기여하기
-Issue와 Pull Request 환영합니다.
-기능 제안, 버그 리포트, 코드 개선 모두 환영합니다.
-브랜치 전략: 기능 단위로 브랜치를 생성하고, 작은 단위의 PR을 권장합니다.
-
----
-
-### 📜 라이선스
-
-MIT License (추후 변경 가능)
-
----
-
-### 🙏 감사의 말
-
-Jane Austen의 원작 Pride and Prejudice (퍼블릭 도메인)에서 제목 영감을 얻었습니다.
-Hailo, SadTalker, OpenAI LLM 등 오픈소스 및 AI 기술에 감사드립니다.
+* 시스템 아키텍처 내부: AI 분석 과정 시연 

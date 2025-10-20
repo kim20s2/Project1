@@ -22,7 +22,7 @@ class TestServerFactory(GstRtspServer.RTSPMediaFactory):
         script_path = os.path.abspath(__file__)
         main_dir = os.path.dirname(os.path.dirname(os.path.dirname(script_path)))
 
-        target_path = os.path.join(main_dir, 'scripts', 'gstreamer', 'examples', 'C0189_640p.MP4')
+        target_path = os.path.join(main_dir, 'scripts', 'gstreamer', 'examples', 'target.MP4')
 
         self.video_device = target_path
         self.max_clients = 5
