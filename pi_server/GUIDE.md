@@ -4,10 +4,9 @@
 
 카메라와 마이크 입력을 받아 AI 모델을 통해 사용자의 포즈(자세 교정)와 표정(웃음 여부)을 실시간으로 인식하며, 클라이언트의 요청에 따라 분석 결과를 전송합니다.
 
-<center>
-<img src="../assets/images/pi_webcam.jpeg" alt="Image" width="" height="250">
-<img src="../assets/images/pi_a6700.jpeg" alt="Image" width="" height="250">
-</center>
+![](../assets/images/pi_webcam.jpeg) | ![](../assets/images/pi_a6700.jpeg)
+---|---|
+
 
 ## 🏛️ 서버 아키텍처 및 설계 (Server Architecture & Design)
 
@@ -24,7 +23,7 @@
 이 시스템의 핵심은 **Flask 기반의 API 서버**가 "Control Tower" 역할을 수행하는 것입니다. API 서버는 `ProcessManager` 클래스 인스턴스를 통해 모든 자식 프로세스(RTSP, AI 추론, 녹화 등)의 생성과 소멸을 직접 관리합니다.
 
 <center>
-<img src="../assets/graphs/pi_server.svg" alt="Image" width="600" height="600">
+<img src="../assets/graphs/pi_server.svg" alt="Image" width="80%" height="auto">
 </center>
 
 ### 3\. 주요 컴포넌트 상세
