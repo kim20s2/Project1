@@ -1,11 +1,14 @@
-import os
+import os,sys
 from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # .../AI_interview를 sys.path에 추가
 import streamlit as st
 from app.upload_section import render_upload_section
 from core.whisper_run import load_whisper
 from core.chains import build_feedback_chain
-from interviewer import render_interviewer_panel
-from adapters.interviewer_adapters import my_stt_from_path, my_feedback
+from app.interviewer import render_interviewer_panel
+from app.adapters.interviewer_adapters import my_stt_from_path, my_feedback
+
+
 # ── 페이지/세션 기본 설정 ─────────────────────────────────────────────
 st.set_page_config(page_title="AI 면접관", page_icon="🎤", layout="wide")
 ss = st.session_state

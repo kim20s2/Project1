@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<session>
+  <event frame="12" prob="0.76" timestamp_sec="1.07" type="negative_emotion" />
+  <event frame="24" prob="0.81" timestamp_sec="2.14" type="negative_emotion" />
+  <event frame="36" prob="0.88" timestamp_sec="3.26" type="negative_emotion" />
+  <event frame="48" prob="0.93" timestamp_sec="4.31" type="negative_emotion" />
+  <event frame="60" prob="0.65" timestamp_sec="5.38" type="negative_emotion" />
+  <event frame="67" score="0.0" timestamp_sec="6.00" type="bad_posture" />
+  <event frame="72" prob="0.43" timestamp_sec="6.45" type="negative_emotion" />
+  <event frame="96" prob="0.61" timestamp_sec="8.58" type="negative_emotion" />
+  <event frame="108" prob="0.65" timestamp_sec="9.64" type="negative_emotion" />
+  <event frame="120" prob="0.81" timestamp_sec="10.77" type="negative_emotion" />
+  <event frame="132" prob="0.89" timestamp_sec="11.92" type="negative_emotion" />
+  <event frame="144" prob="0.50" timestamp_sec="13.04" type="negative_emotion" />
+  <event frame="163" prob="0.50" timestamp_sec="14.85" type="negative_emotion" />
+  <event frame="175" prob="0.65" timestamp_sec="15.92" type="negative_emotion" />
+  <event frame="187" prob="0.69" timestamp_sec="16.99" type="negative_emotion" />
+  <event frame="199" prob="0.54" timestamp_sec="18.07" type="negative_emotion" />
+  <event frame="218" prob="0.72" timestamp_sec="19.81" type="negative_emotion" />
+</session>

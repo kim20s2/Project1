@@ -1,6 +1,37 @@
-import json, os
+import json, os, math
 from core.analysis_pose import parse_posture_summary as parse_legacy, normalize_posture
 from core.analysis_pose_jetson import parse_posture_summary_jetson
+
+try:
+    import numpy as np
+except Exception:
+    np = None
+
+def _to_native_jsonable(x):
+    """np.float32 등 NumPy 스칼라/컬렉션을 파이썬 내장 타입으로 변환."""
+    # NumPy 스칼라 → 파이썬 스칼라
+    if np is not None and isinstance(x, np.generic):
+        x = x.item()
+
+    if isinstance(x, float):
+        # NaN/Inf는 None으로 치환 (LLM 입력 안전성)
+        if not math.isfinite(x):
+            return None
+        return float(x)
+
+    if isinstance(x, (int, str, bool)) or x is None:
+        return x
+
+    if isinstance(x, dict):
+        return {str(k): _to_native_jsonable(v) for k, v in x.items()}
+
+    if isinstance(x, (list, tuple)):
+        return [_to_native_jsonable(v) for v in x]
+
+    # 그 외(예: set, custom obj)는 문자열화 또는 리스트화 필요 시 확장 가능
+    return str(x)
+
+
 
 def _severity_by_ratio(count, total):
     if not total: return ""
@@ -81,4 +112,4 @@ def build_nonverbal_json(voice: dict, posture_common: dict) -> str:
             "label": posture_common.get("label", "정상"),
         }
     }
-    return json.dumps(payload, ensure_ascii=False)
+    return json.dumps(_to_native_jsonable(payload), ensure_ascii=False)
