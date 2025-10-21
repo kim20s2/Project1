@@ -108,7 +108,8 @@
 
   * **설계:** 면접자의 비언어적 요소를 정량화하기 위해 자체 학습된 표정 인식 모델과 고성능 자세 추정 모델을 사용합니다.
   * **상세 내용:** 자체 개발한 표정 인식 모델에 대한 상세 내용은 관련 문서를 참조하세요.
-      * [표정 인식 모델 가이드](./keras/README.md)
+      * [표정 인식 모델(분류) 가이드](./keras/README_CLASSIFICATION.md)
+      * [표정 인식 모델(도메인) 가이드](./keras/README_DOMAIN.md)
       * [자세 추정 모델 출처](https://github.com/hailo-ai/hailo_model_zoo/blob/master/docs/public_models/HAILO8/HAILO8_single_person_pose_estimation.rst)
 
 ## 🚀 설치 및 실행 방법 (Setup & Usage)
