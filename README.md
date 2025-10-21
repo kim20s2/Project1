@@ -6,7 +6,10 @@
 
 사용자의 시각적 요소(자세, 표정)와 청각적 요소(목소리 톤, 답변 내용)를 실시간으로 분석하고, 면접 종료 후 Google Gemini (LLM)를 통해 개선점을 담은 상세한 리포트를 제공합니다.
 
-[시연 youtube 링크](https://www.youtube.com/watch?v=_QDHTg0C5Fo)
+<center>
+<img src="./assets/animations/demo.webp" alt="Image" width="90%" height="auto">
+</center> 
+
 
 ## 🏛️ 시스템 아키텍처 (System Architecture)
 
@@ -32,7 +35,7 @@
       * Flask 기반의 RESTful API를 통해 클라이언트의 요청 시 녹화된 영상/음성 원본과 `xml` 파일을 전송합니다.
 
 <center>
-<img src="./assets/animations/client.webp" alt="Image" width="90%" height="auto">
+<img src="./assets/animations/client_demo.webp" alt="Image" width="90%" height="auto">
 </center> 
 
 
