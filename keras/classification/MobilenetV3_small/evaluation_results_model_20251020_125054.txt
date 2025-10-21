@@ -1,0 +1,31 @@
+======================================================================
+MODEL EVALUATION RESULTS - model
+Timestamp: 20251020_125054
+======================================================================
+
+Validation Accuracy: 0.7717
+Test Accuracy:       0.7492
+
+Confusion Matrix:
+[[ 437   56  113  226   34]
+ [  24  811    3   28    0]
+ [  47    7 1222  114   53]
+ [  81   14  127  713   58]
+ [  26   12   51   76  701]]
+
+Confusion Matrix Image: ./fer2013_keras_hailo_MobileNetV3Small/confusion_matrix_model_20251020_125054.png
+
+Per-Class Accuracy:
+--------------------------------------------------
+  LOW  angry       : 0.5046 (  866 samples)
+  OK   disgust     : 0.9365 (  866 samples)
+  OK   happy       : 0.8468 ( 1443 samples)
+  WARN neutral     : 0.7180 (  993 samples)
+  OK   surprise    : 0.8095 (  866 samples)
+
+Macro Average: 0.7631
+
+⚠ Warning: Performance below 80% threshold
+
+======================================================================
+Per-Class Accuracy Chart: ./fer2013_keras_hailo_MobileNetV3Small/per_class_accuracy_model_20251020_125054.png
