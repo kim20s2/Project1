@@ -3,16 +3,16 @@ Edge AI 면접 보조 시스템 (Jetson Nano + TensorRT)
 
 실시간 자세/표정 추론과 녹화/로그 수집, 그리고 클라이언트의 LLM 종합 피드백까지 한 번에.
 
-🏞️ 시연 영상 (Demo)
+## 🏛️ 시스템 아키텍처 (System Architecture)
+이 시스템은 Edge AI 서버(Jetson Nano) 와 클라이언트 애플리케이션으로 구성됩니다.
+
+서버는 실시간 데이터 수집·AI 추론·녹화/로그 저장을 담당하고, 클라이언트는 결과 수집·음성 분석·LLM 피드백 생성을 수행합니다.
+
+## 🏞️ 시연 영상 (Demo)
 
 <img width="636" height="514" alt="Screenshot from 2025-10-21 10-06-09" src="https://github.com/user-attachments/assets/f431eb47-2dfd-4e96-bc08-a8f28c8b291b" />
 
 ![video_ai_12s_480w_8fps](https://github.com/user-attachments/assets/36378993-5ceb-4900-99e8-bc52a797a003)
-
-🏛️ 시스템 아키텍처 (System Architecture)
-이 시스템은 Edge AI 서버(Jetson Nano) 와 클라이언트 애플리케이션으로 구성됩니다.
-
-서버는 실시간 데이터 수집·AI 추론·녹화/로그 저장을 담당하고, 클라이언트는 결과 수집·음성 분석·LLM 피드백 생성을 수행합니다.
 
 ## Edge AI 서버 (Server)
 역할: 면접자의 영상/음성을 실시간으로 수집하고 AI 모델로 분석합니다.
