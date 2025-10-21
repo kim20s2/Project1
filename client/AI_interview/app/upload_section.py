@@ -3,6 +3,7 @@ import tempfile, streamlit as st
 from core.whisper_run import transcribe_file
 from core.analysis_pose import parse_posture_summary
 from core.analysis_audio import analyze_stability, get_stability_score
+from core.analysis_pose_jetson import parse_posture_summary_jetson
 
 # ── 업로드 모드(배치 분석) ────────────────────────────────────────────
 def render_upload_section(*, ss, whisper_model, feedback_chain):
@@ -42,7 +43,7 @@ def render_upload_section(*, ss, whisper_model, feedback_chain):
         if posture_file:
             with tempfile.NamedTemporaryFile(delete=False, suffix=".xml") as tmp_xml:
                 tmp_xml.write(posture_file.getbuffer())
-                posture_summary = parse_posture_summary(tmp_xml.name)
+                posture_summary = parse_posture_summary_jetson(tmp_xml.name)
 
         if uploaded_file and posture_file:
             st.success(f"✅ 파일 업로드 완료: {uploaded_file.name}, {posture_file.name}")

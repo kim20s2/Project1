@@ -1,50 +1,72 @@
-# === Core ===
-numpy>=1.26.0
-pandas>=2.2.0
-scipy>=1.12.0
+# =========================
+# AI Interview Client - requirements.txt
+# Python 3.10 권장
+# =========================
 
-# === Audio Analysis ===
-librosa>=0.10.1
-soundfile>=0.12.1
-audioread>=3.0.1
-pydub>=0.25.1
-ffmpeg-python>=0.2.0
+# --- UI / App ---
+streamlit==1.39.0
+requests>=2.31,<3
 
-# === Whisper / ASR ===
-openai-whisper>=20231117
-torch>=2.2.0
-torchaudio>=2.2.0
+# --- Data / Utils ---
+pandas>=2.2,<2.3
+numpy>=1.26,<3.0
+python-dateutil>=2.9.0.post0
+packaging>=24.0
 
-# === Voice Features (optional: openSMILE) ===
-opensmile>=2.4.0
+# --- Audio I/O & Analysis ---
+# openSMILE 파이썬 바인딩 (eGeMAPS functionals 사용)
+opensmile==2.5.0
+# WAV 입출력
+soundfile>=0.12,<1.0
+scipy>=1.11,<2
 
-# === LLM & LangChain ===
-langchain>=0.2.12
-langchain-core>=0.2.6
-langchain-community>=0.2.6
-google-generativeai>=0.3.2
-openai>=1.35.0
+# --- XML 파싱(자세/표정 요약 XML) ---
+xmltodict>=0.13,<0.14
 
-# === Web UI ===
-streamlit>=1.36.0
+# --- LLM (LangChain + Google Gemini) ---
+# LLMChain, ChatPromptTemplate 사용
+langchain==0.2.16
+langchain-community>=0.2.0
+# Gemini 연동
+langchain-google-genai>=2.0.0
+google-generativeai>=0.7.0
 
-# === XML / JSON Processing ===
-lxml>=5.2.1
-xmltodict>=0.13.0
+# --- 이미지/미디어(경량) ---
+Pillow>=10.2,<12
+imageio>=2.34,<3
+imageio-ffmpeg>=0.4.9
 
-# === Machine Learning (for posture/emotion models) ===
-tensorflow>=2.16.0
-opencv-python>=4.10.0
-scikit-learn>=1.5.0
+# =========================
+# 선택(옵션) 패키지
+# 필요할 때만 주석 해제해서 사용
+# =========================
 
-# === Utility ===
-tqdm>=4.66.4
-matplotlib>=3.8.3
-seaborn>=0.13.2
+# --- 로컬 Whisper STT ---
+# 주의: torch는 OS/하드웨어마다 다른 휠이 필요함(아래 안내 참고)
+# openai-whisper
+# torch
 
-# === Optional (for deployment/server) ===
-fastapi>=0.111.0
-uvicorn>=0.29.0
-requests>=2.31.0
-python-dotenv>=1.0.1
+# --- OpenCV (프레임 기반 표정/포즈 후처리 시) ---
+# opencv-python>=4.9.0.80
 
+# --- .env로 키 관리할 경우 ---
+# python-dotenv>=1.0
+
+# --- 개발 편의(코드 포맷터/린터) ---
+# black
+# ruff
+
+# =========================
+# 설치 팁 (주석)
+# =========================
+# 1) Whisper를 쓸 때는 ffmpeg 바이너리가 시스템에 필요합니다.
+#    Ubuntu: sudo apt-get install -y ffmpeg
+#    macOS (brew): brew install ffmpeg
+#
+# 2) torch는 플랫폼별로 다릅니다. 실패하면 아래처럼 별도 설치:
+#    - Linux CUDA 12.x:  pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cu121
+#    - Linux CPU-only:  pip install torch==2.4.0 --index-url https://download.pytorch.org/whl/cpu
+#    - macOS(Apple Silicon, MPS): pip install torch==2.4.0
+#
+# 3) langchain 0.2.x에서는 일부 모듈이 langchain-community로 분리되었습니다.
+#    (예: 일부 로더/커넥터) 필요 시 langchain-community를 함께 둡니다.
