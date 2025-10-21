@@ -1,18 +1,16 @@
 from __future__ import annotations
 import streamlit as st
-import requests, tempfile, base64, shutil,time
-import os, wave,glob,uuid
+import requests, tempfile,time
+import os, wave,uuid
 import numpy as np, math
-import time 
 import statistics as stats, json
 from pathlib import Path
-from typing import Callable, Iterable, Tuple
+from typing import Callable, Iterable
 from core.analysis_audio import analyze_stability, get_stability_score
 from core.analysis_pose import parse_posture_summary, normalize_posture
-from adapters.interviewer_adapters import my_stt_from_path as stt_fn, load_persona_videos, shuffle_order
+from app.adapters.interviewer_adapters import my_stt_from_path as stt_fn, load_persona_videos, shuffle_order
 from core.recording_io import save_assets_after_stop, BASE_DIR 
 from core.chains import get_prompt,call_llm
-from adapters.posture_adapters import parse_posture_auto, build_nonverbal_json
 
 SHOW_PER_ANSWER_METRICS = False  # 답변별 지표는 숨김
 SHOW_FINAL_METRICS      = True   # 총평에서만 지표 표시
@@ -236,11 +234,11 @@ def render_interviewer_panel(
         st.rerun()
     c1, c2, c3 = st.columns([1, 1, 1])
 
-  # ── c1: 면접 시작(처음 1회만 활성화)
+  # ── c1: 면접 시작 버튼
     with c1:
         if st.button("▶ 면접 시작", use_container_width=True,
                     disabled=ss.get("eva_started", False) or ss.get("eva_recording", False)):
-            _new_session()            # ← 여기!
+            _new_session()            
             _start_play(cur_idx, cur)
     # ── 면접관 영상은 mid에서 렌더
     left, mid, right = st.columns([2.5, 2, 2.5])
@@ -306,7 +304,7 @@ def render_interviewer_panel(
                         bar.progress(int(((COUNTDOWN - sec + 1) / COUNTDOWN) * 100))
                         time.sleep(1)
 
-                    st.success("면접이 시작되었습니다. 답변을 말씀해 주세요.")
+                    st.success("면접이 시작되었습니다.\n답변을 말씀해 주세요.")
                 except requests.exceptions.RequestException as e:
                     st.error(f"요청 실패: {e}")
                 finally:
@@ -328,7 +326,7 @@ def render_interviewer_panel(
                     # ★ 스냅샷(이 답변은 어떤 세션/몇 번째 질문이었는지 고정)
                     ss.eva_session_for_answer = ss.session_id
                     ss.eva_qidx_for_answer    = ss.eva_qidx
-                    st.success("답변이 종료되었습니다. 분석을 시작합니다…")
+                    st.success("답변이 종료되었습니다.\n분석을 시작합니다…")
 
                     # ★ 즉시 UI 재렌더 → '답변 시작' 버튼이 바로 활성화됨
                     st.rerun()
@@ -355,9 +353,9 @@ def render_interviewer_panel(
         with st.spinner("저장 중…"):
             saved = save_assets_after_stop(
             server_url=server_url,
-            session_id=ss.session_id,   # ← get(...) 대신 확실한 세션 ID 사용 권장
+            session_id=sess_for_save,   # ← 현재 세션이 아니라 정지 당시 세션
             kinds=tuple(kinds),          # ← iterable이면 리스트도 OK, 습관상 튜플로
-            qidx=ss.eva_qidx,           # ★ 추가: 녹음 당시 질문 인덱스 전달
+            qidx=qidx_for_save,          # 정지 당시 질문 인덱스 
             # stem=원하면_외부에서_고정_stem_지정_가능
         )
         if saved:
@@ -392,7 +390,15 @@ def render_interviewer_panel(
                     st.info("답변 텍스트로 변환중…")
                     ss.eva_last_stt = stt_fn(ss.eva_last_wav)   # my_stt_from_path 사용
 
-                    qtext = ss.eva_questions[ss.eva_qidx] if ss.eva_questions else f"Q{ss.eva_qidx+1}"
+                    qidx_for = ss.get("eva_qidx_for_answer", ss.eva_qidx)
+                    order = ss.get("eva_order") or []
+                    if not order or not isinstance(qidx_for, int) or qidx_for >= len(order):
+                        qtext = f"Q{(qidx_for if isinstance(qidx_for, int) else 0)+1}"
+                    else:
+                        cur_idx = order[qidx_for]
+                        cur = ss.eva_videos[cur_idx]
+                        qtext = cur.get("text") or cur.get("caption") or f"Q{qidx_for+1}"
+
                     st.info("피드백 생성 중…")
                     ss.eva_last_fb = feedback_fn(qtext, ss.eva_last_stt)
 

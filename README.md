@@ -1,12 +1,15 @@
 # 오만과 편견 (Pride and Prejudice)
 
-***사용자의 '오만(무의식적 습관)'과 AI 면접관의 '편견'을 극복하는 가상 면접 피드백 시스템***
+***사용자의 '오만(무의식적 습관)'과 면접관의 '편견'을 극복하는 가상 면접 피드백 시스템***
 
 본 프로젝트는 면접을 준비하는 사용자에게 AI 기반의 종합적인 피드백을 제공하는 시스템입니다.
 
 사용자의 시각적 요소(자세, 표정)와 청각적 요소(목소리 톤, 답변 내용)를 실시간으로 분석하고, 면접 종료 후 Google Gemini (LLM)를 통해 개선점을 담은 상세한 리포트를 제공합니다.
 
-[시연 youtube 링크](https://www.youtube.com/watch?v=_QDHTg0C5Fo)
+<center>
+<img src="./assets/animations/demo.webp" alt="Image" width="90%" height="auto">
+</center> 
+
 
 ## 🏛️ 시스템 아키텍처 (System Architecture)
 
@@ -32,7 +35,7 @@
       * Flask 기반의 RESTful API를 통해 클라이언트의 요청 시 녹화된 영상/음성 원본과 `xml` 파일을 전송합니다.
 
 <center>
-<img src="./assets/animations/client.webp" alt="Image" width="90%" height="auto">
+<img src="./assets/animations/client_demo.webp" alt="Image" width="90%" height="auto">
 </center> 
 
 
@@ -105,8 +108,12 @@
 
   * **설계:** 면접자의 비언어적 요소를 정량화하기 위해 자체 학습된 표정 인식 모델과 고성능 자세 추정 모델을 사용합니다.
   * **상세 내용:** 자체 개발한 표정 인식 모델에 대한 상세 내용은 관련 문서를 참조하세요.
-      * [표정 인식 모델 가이드](./keras/README.md)
-      * [자세 추정 모델 출처](https://github.com/hailo-ai/hailo_model_zoo/blob/master/docs/public_models/HAILO8/HAILO8_single_person_pose_estimation.rst)
+      * [RPi5 표정 인식 모델(분류) 가이드](./keras/README_CLASSIFICATION.md)
+      * [Rpi5 표정 인식 모델(도메인) 가이드](./keras/README_DOMAIN.md)
+      * [Rpi5 자세 추정 모델 출처](https://github.com/hailo-ai/hailo_model_zoo/blob/master/docs/public_models/HAILO8/HAILO8_single_person_pose_estimation.rst)
+      * [Jetson Nano 표정 인식 및 자세 추정 모델 가이드](https://github.com/won-jong-wan/Pride-and-Prejudice/blob/jetson-dev/jetson_server/GUIDE.md)
+      * [Jetson Nano 자세 추정 모델 출처](https://www.tensorflow.org/hub/tutorials/movenet?hl=ko)
+   
 
 ## 🚀 설치 및 실행 방법 (Setup & Usage)
 
