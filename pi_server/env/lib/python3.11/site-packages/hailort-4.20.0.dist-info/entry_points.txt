@@ -1,0 +1,2 @@
+[console_scripts]
+hailo = hailo_platform.tools.hailocli.main:main
