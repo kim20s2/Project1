@@ -279,8 +279,8 @@ flowchart LR
 - 성능: 640×480 기준 **~15 FPS**
 
 ### (2) 이벤트 기록 규칙
-- **표정**: `Negative` **비율 ≥ 30%** → 이벤트 기록
-- **자세**: **Posture Score ≤ 50점** → 이벤트 기록
+- **표정**: `Negative` **비율 ≥ 20%** → 이벤트 기록
+- **자세**: **Posture Score ≤ 60점** → 이벤트 기록
 - **XML**(예시):
 ```xml
 <event type="negative_emotion|bad_posture|leg_shake"
