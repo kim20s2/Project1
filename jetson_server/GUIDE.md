@@ -7,11 +7,7 @@ Edge AI 면접 보조 시스템 (Jetson Nano + TensorRT)
 
 <img width="636" height="514" alt="Screenshot from 2025-10-21 10-06-09" src="https://github.com/user-attachments/assets/f431eb47-2dfd-4e96-bc08-a8f28c8b291b" />
 
-<video src="/home/ubuntuksh10/Downloads/video_ai.mp4" controls playsinline muted poster="/home/ubuntuksh10/Downloads/video_ai_poster.jpg" width="720">
-  <!-- HTML이 비활성화된 뷰어 fallback -->
-  <a href="/home/ubuntuksh10/Downloads/video_ai.mp4">Watch the video</a>
-</video>
-
+![video_ai_12s_480w_8fps](https://github.com/user-attachments/assets/36378993-5ceb-4900-99e8-bc52a797a003)
 
 🏛️ 시스템 아키텍처 (System Architecture)
 이 시스템은 Edge AI 서버(Jetson Nano) 와 클라이언트 애플리케이션으로 구성됩니다.
