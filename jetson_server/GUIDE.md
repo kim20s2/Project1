@@ -1,6 +1,45 @@
-# Jetson FER+Posture System — Technical Overview (Features · Architecture · Execution Flow)
+# Interview Assist System — Jetson Nano Edition
+Edge AI 면접 보조 시스템 (Jetson Nano + TensorRT)
 
-> 본 문서는 **설치(install)** 내용을 제외하고, 업로드된 소스(`run_3cls_audio2.py`, `process_call.py`, `server.py`, `trt_utils.py`)의 **주요 기능**, **구조**, **실행 흐름**을 구체적으로 설명합니다.
+실시간 자세/표정 추론과 녹화/로그 수집, 그리고 클라이언트의 LLM 종합 피드백까지 한 번에.
+
+🏞️ 시연 영상 (Demo)
+
+<img width="636" height="514" alt="Screenshot from 2025-10-21 10-06-09" src="https://github.com/user-attachments/assets/f431eb47-2dfd-4e96-bc08-a8f28c8b291b" />
+
+<video src="/home/ubuntuksh10/Downloads/video_ai.mp4" controls playsinline muted poster="/home/ubuntuksh10/Downloads/video_ai_poster.jpg" width="720">
+  <!-- HTML이 비활성화된 뷰어 fallback -->
+  <a href="/home/ubuntuksh10/Downloads/video_ai.mp4">Watch the video</a>
+</video>
+
+
+🏛️ 시스템 아키텍처 (System Architecture)
+이 시스템은 Edge AI 서버(Jetson Nano) 와 클라이언트 애플리케이션으로 구성됩니다.
+
+서버는 실시간 데이터 수집·AI 추론·녹화/로그 저장을 담당하고, 클라이언트는 결과 수집·음성 분석·LLM 피드백 생성을 수행합니다.
+
+## Edge AI 서버 (Server)
+역할: 면접자의 영상/음성을 실시간으로 수집하고 AI 모델로 분석합니다.
+
+하드웨어: Jetson Nano (+ USB Webcam / RealSense)
+
+가속기/프레임워크: TensorRT, OpenCV
+주요 기능
+- 실시간 추론: 자세(좋음/보통/나쁨) · 표정(웃음/중립/부정) 인식
+- 입력 파이프라인
+- 간단: OpenCV VideoCapture로 /dev/videoN 직접 캡처
+- 로깅: 이벤트를 시간대별 태깅하여 XML 특징 파일 생성
+- 녹화: 주석 영상(*_annot.mp4) · 원본(*_raw.mp4), 오디오(.wav) 저장
+- API: Flask 기반 REST 엔드포인트로 녹화/다운로드 제어
+
+추천 실행 (단일 스크립트 모드)
+- python3 run_3cls_audio2.py --src 3 --width 640 --height 480 --fps 30 --show_fps
+
+핫키: b(베이스라인 시작) / r(해제) / t(녹화 토글) / o(90° 회전) / q|ESC(종료)
+산출물 경로
+- 비디오: mp4/rec_YYYYMMDD_HHMMSS_annot.mp4, mp4/rec_YYYYMMDD_HHMMSS_raw.mp4
+- 오디오: wav/rec_YYYYMMDD_HHMMSS.wav
+- XML: xml/xml_YYYYMMDD_HHMMSS.xml
 
 ## 1) 핵심 기능 요약
 - **실시간 추론**: 카메라 프레임에서 **포즈(MoveNet TRT)**와 **표정(3‑class FER TRT)**를 동시 추론
