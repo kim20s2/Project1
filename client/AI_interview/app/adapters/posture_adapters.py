@@ -1,7 +1,6 @@
 import json, os, math
 from core.analysis_pose import parse_posture_summary as parse_legacy, normalize_posture
 from core.analysis_pose_jetson import parse_posture_summary_jetson
-
 try:
     import numpy as np
 except Exception:
@@ -31,8 +30,6 @@ def _to_native_jsonable(x):
     # 그 외(예: set, custom obj)는 문자열화 또는 리스트화 필요 시 확장 가능
     return str(x)
 
-
-
 def _severity_by_ratio(count, total):
     if not total: return ""
     r = count / float(total)
@@ -59,17 +56,65 @@ def parse_posture_auto(xml_path: str) -> tuple[str, dict, dict]:
     """
     return (flavor, common_for_llm, legacy_normalized)
       - flavor: 'jetson' | 'legacy' | 'unknown'
-      - common_for_llm: 젯슨 스키마 형태(dict)
+      - common_for_llm: LLM/집계에서 바로 쓰기 좋은 공통 스키마(dict)
+            {
+              "frames": int,
+              "negative_emotion_count": int,  # ← ratio*frames로 근사한 '프레임 수'
+              "bad_posture_count": int,
+              "leg_shake_count": int,
+              "negative_emotion_severity": str,  # 강/중/약 등
+              "bad_posture_severity": str,
+              "leg_shake_severity": str,
+              "label": str,                     # 최종 라벨 문자열
+            }
       - legacy_normalized: normalize_posture(...) 결과(레거시일 때만)
     """
-    # 1) 젯슨 우선
+    # 1) Jetson 우선 시도
     try:
         jet = parse_posture_summary_jetson(xml_path)
-        if jet and isinstance(jet.get("frames"), int):
-            return "jetson", jet, {}
+        if jet:
+
+            # ── (A) 새 Jetson 스키마(total_frames / counts / ratios / levels)
+            if ("total_frames" in jet) or ("counts" in jet) or ("ratios" in jet):
+                frames = int(jet.get("total_frames") or 0)
+                ratios = jet.get("ratios") or {}
+                levels = jet.get("levels") or {}
+
+                def _est_frames(key: str) -> int:
+                    r = ratios.get(key)
+                    try:
+                        return int(round(float(r) * frames)) if (r is not None and frames > 0) else 0
+                    except Exception:
+                        return 0
+
+                neg_cnt = _est_frames("negative_emotion")
+                bad_cnt = _est_frames("bad_posture")
+                leg_cnt = _est_frames("leg_shake")
+
+                # Jetson이 준 등급이 있으면 우선 사용, 없으면 기존 규칙으로 환산
+                neg_sev = levels.get("negative_emotion") or _severity_by_ratio(neg_cnt, frames)
+                bad_sev = levels.get("bad_posture")      or _severity_by_ratio(bad_cnt, frames)
+                leg_sev = levels.get("leg_shake")        or _severity_by_ratio(leg_cnt, frames)
+
+                common = {
+                    "frames": frames,
+                    "negative_emotion_count": neg_cnt,
+                    "bad_posture_count":      bad_cnt,
+                    "leg_shake_count":        leg_cnt,
+                    "negative_emotion_severity": neg_sev,
+                    "bad_posture_severity":      bad_sev,
+                    "leg_shake_severity":        leg_sev,
+                    "label": jet.get("label") or "정상",
+                }
+                return "jetson", common, {}
+
+            # ── (B) 구 Jetson 스키마(frames / *_rate / *_severity …)도 그대로 통과
+            if isinstance(jet.get("frames"), int):
+                return "jetson", jet, {}
     except Exception:
         pass
-    # 2) 레거시로 폴백
+
+    # 2) Legacy 폴백
     try:
         raw = parse_legacy(xml_path) or {}
         norm = normalize_posture(raw) or {}
@@ -77,39 +122,7 @@ def parse_posture_auto(xml_path: str) -> tuple[str, dict, dict]:
         return "legacy", common, norm
     except Exception:
         pass
+
     return "unknown", {"frames": 0, "label": "데이터 없음"}, {}
 
-def _rate(n, d): 
-    return None if not d else round(float(n)/float(d), 4)
 
-def build_nonverbal_json(voice: dict, posture_common: dict) -> str:
-    frames = posture_common.get("frames") or 0
-    payload = {
-        "voice": {
-            "stability_score": voice.get("stability_score"),
-            "jitter": voice.get("jitter"),
-            "shimmer": voice.get("shimmer"),
-            "hnr": voice.get("hnr"),
-            "label": voice.get("stability_label"),
-        },
-        "posture": {
-            "frames": int(frames),
-            "negative_emotion": {
-                "count": posture_common.get("negative_emotion_count", 0),
-                "rate": _rate(posture_common.get("negative_emotion_count", 0), frames),
-                "severity": posture_common.get("negative_emotion_severity", ""),
-            },
-            "bad_posture": {
-                "count": posture_common.get("bad_posture_count", 0),
-                "rate": _rate(posture_common.get("bad_posture_count", 0), frames),
-                "severity": posture_common.get("bad_posture_severity", ""),
-            },
-            "leg_shake": {
-                "count": posture_common.get("leg_shake_count", 0),
-                "rate": _rate(posture_common.get("leg_shake_count", 0), frames),
-                "severity": posture_common.get("leg_shake_severity", ""),
-            },
-            "label": posture_common.get("label", "정상"),
-        }
-    }
-    return json.dumps(_to_native_jsonable(payload), ensure_ascii=False)
