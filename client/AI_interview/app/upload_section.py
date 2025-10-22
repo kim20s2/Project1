@@ -1,5 +1,5 @@
 from pathlib import Path
-import tempfile, streamlit as st
+import tempfile, os,streamlit as st
 from core.whisper_run import transcribe_file
 from core.analysis_pose import parse_posture_summary
 from core.analysis_audio import analyze_stability, get_stability_score
@@ -41,9 +41,21 @@ def render_upload_section(*, ss, whisper_model, feedback_chain):
         # 자세 요약
         posture_summary = None
         if posture_file:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".xml") as tmp_xml:
-                tmp_xml.write(posture_file.getbuffer())
-                posture_summary = parse_posture_summary_jetson(tmp_xml.name)
+            xml_bytes = posture_file.getvalue()  # ← 한 번에 바이트로
+            if not xml_bytes or not xml_bytes.strip():
+                st.error("XML 파일이 비어 있습니다.")
+            else:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".xml") as tmp_xml:
+                    tmp_xml.write(xml_bytes)
+                    tmp_xml.flush()
+                    os.fsync(tmp_xml.fileno())
+                    tmp_xml_path = tmp_xml.name  # 경로만 꺼내고
+
+                # ★ 파일이 닫힌 뒤 파싱
+                try:
+                    posture_summary = parse_posture_summary_jetson(tmp_xml_path)
+                except Exception as e:
+                    st.error(f"XML 파싱 실패: {e}")
 
         if uploaded_file and posture_file:
             st.success(f"✅ 파일 업로드 완료: {uploaded_file.name}, {posture_file.name}")

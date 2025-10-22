@@ -124,9 +124,6 @@ SESSION_PREFIX=default_session
 GOOGLE_API_KEY="사용할 구글 API KEY" streamlit run app/main_app.py
 ```
 
-## 클라이언트 동작 흐름
-
-1. **질문 재생** → 2)  **start_record 요청** → 3) **stop_record 요청** → 4) **WAV/분석 XML/mp4 다운로드** → 5) **STT** → 6) **해당 답변에 대한 LLM 피드백 생성** → 7) **면접 종료 후 자세/표정 분석까지 들어간 최종 리포트 표시**
 
 
 

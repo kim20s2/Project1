@@ -8,13 +8,12 @@ from core.chains import build_feedback_chain
 from app.interviewer import render_interviewer_panel
 from app.adapters.interviewer_adapters import my_stt_from_path, my_feedback
 
-
 # ── 페이지/세션 기본 설정 ─────────────────────────────────────────────
 st.set_page_config(page_title="AI 면접관", page_icon="🎤", layout="wide")
 ss = st.session_state
 ss.setdefault("session_id", "default_session")
 # ── 외부 서버 주소(Flask) ───────────────────────────────
-SERVER_URL = os.environ.get("PI_SERVER_URL", "http://10.10.14.80:5000")
+SERVER_URL = os.environ.get("PI_SERVER_URL", "http://10.10.14.200:5000")
 
 # ── 모델/체인(세션당 1회 로드) ────────────────────────────────────────
 if "whisper_model" not in ss:
